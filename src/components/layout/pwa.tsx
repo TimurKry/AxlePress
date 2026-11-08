@@ -4,6 +4,7 @@ import { WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DATASET_VERSION } from "@/data/pressure-tables";
 import { useI18n } from "@/i18n";
+import { withBasePath } from "@/lib/base-path";
 
 /** Registers the service worker (production only) and shows an offline badge. */
 export function PwaSupport() {
@@ -12,7 +13,7 @@ export function PwaSupport() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
+      navigator.serviceWorker.register(withBasePath("/sw.js"), { scope: withBasePath("/") }).catch(() => {
         /* offline support is optional */
       });
     }

@@ -43,9 +43,9 @@ Details: [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md), [`docs/DATA_VERIFICATIO
 
 ## Tech stack
 
-Next.js 16 (App Router, static prerender) · React 19 · TypeScript (strict) · Tailwind CSS 4 ·
-shadcn/ui-style components (`components.json`, `src/components/ui`) · Lucide icons · Zod ·
-Vitest · Playwright · Vercel.
+Next.js 16 (App Router, static prerender / static export) · React 19 · TypeScript (strict) ·
+Tailwind CSS 4 · shadcn/ui-style components (`components.json`, `src/components/ui`) · Lucide icons ·
+Zod · Vitest · Playwright · GitHub Pages (or Vercel).
 
 ## Getting started
 
@@ -62,6 +62,7 @@ npm run dev          # http://localhost:3000
 |---|---|
 | `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build / server |
+| `npm run build:pages` | Static export to `./out` for GitHub Pages (set `NEXT_PUBLIC_BASE_PATH`) |
 | `npm run typecheck` | `tsc --noEmit` (strict) |
 | `npm run lint` | ESLint (Next.js core-web-vitals + TypeScript rules) |
 | `npm test` | Unit tests (engine, parser, data validation, i18n, codecs) |
@@ -119,14 +120,42 @@ Unavailable results carry a `reason` (`unknown_tire_size`, `no_exact_match`, `un
 `flagged_value`, `above_documented_range`, …) and, where applicable, the nearest verified neighbours
 for information.
 
-## Deployment (Vercel)
+## Deployment
 
-1. Push the repository to GitHub.
-2. Import it in Vercel – the framework (Next.js) is detected automatically; `vercel.json` pins
-   `npm ci` / `npm run build`. No environment variables or secrets are required.
-3. The page is fully static; security headers are set in `next.config.ts`.
+### GitHub Pages (recommended – free, no extra account)
 
-CI (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests, build and the Playwright suite.
+The workflow `.github/workflows/pages.yml` builds a fully static version of the app
+(`output: "export"`) and publishes it on every push to the repository's **default branch**.
+
+One-time setup on GitHub:
+
+1. **Settings → General → Danger Zone → Change visibility → Public**
+   (GitHub Pages is free for public repositories).
+2. **Settings → Pages → Build and deployment → Source: "GitHub Actions"**.
+3. **Actions → "Deploy to GitHub Pages" → Run workflow** (or push a commit).
+
+The site is then available at **https://timurkry.github.io/AxlePress/** (the URL is also shown in
+the workflow run and under Settings → Pages). The base path is taken automatically from
+`actions/configure-pages`, so forks and custom domains work without code changes.
+
+Local check of the static build (Linux/macOS):
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/AxlePress npm run build:pages   # → ./out
+mkdir -p /tmp/site && cp -r out /tmp/site/AxlePress && python3 -m http.server -d /tmp/site 8080
+# open http://localhost:8080/AxlePress/
+```
+
+Static hosting cannot send the security headers defined in `next.config.ts`; they only apply to
+server deployments.
+
+### Vercel / Node server (alternative)
+
+`npm run build && npm start`, or import the repository in Vercel (`vercel.json` pins `npm ci` /
+`npm run build`). No environment variables or secrets are required.
+
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, unit tests, build and the Playwright suite on
+every push and pull request.
 
 ## Updating data
 

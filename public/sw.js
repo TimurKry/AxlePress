@@ -3,8 +3,11 @@
  * - Static build assets (/_next/static/*, icons): cache-first (they are content-hashed).
  * - Pages: network-first with cache fallback, so the latest verified dataset is used when online.
  * Bump CACHE_VERSION together with DATASET_VERSION when the dataset changes.
+ * All paths are relative to the registration scope, so the worker also works under a
+ * sub-path such as https://<user>.github.io/AxlePress/.
  */
 const CACHE_VERSION = "tp-2026.11.1";
+const BASE = new URL(self.registration.scope).pathname; // "/" or "/AxlePress/"
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 
@@ -12,7 +15,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(PAGE_CACHE)
-      .then((cache) => cache.addAll(["/", "/manifest.webmanifest", "/icons/icon.svg"]))
+      .then((cache) => cache.addAll([BASE, `${BASE}manifest.webmanifest`, `${BASE}icons/icon.svg`]))
       .then(() => self.skipWaiting()),
   );
 });
@@ -32,7 +35,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  if (url.pathname.startsWith(`${BASE}_next/static/`) || url.pathname.startsWith(`${BASE}icons/`)) {
     event.respondWith(
       caches.open(STATIC_CACHE).then(async (cache) => {
         const hit = await cache.match(request);
@@ -50,10 +53,10 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(PAGE_CACHE).then((cache) => cache.put("/", copy));
+          caches.open(PAGE_CACHE).then((cache) => cache.put(BASE, copy));
           return response;
         })
-        .catch(async () => (await caches.match("/")) || Response.error()),
+        .catch(async () => (await caches.match(BASE)) || Response.error()),
     );
   }
 });

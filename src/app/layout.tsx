@@ -4,6 +4,7 @@ import { PwaSupport } from "@/components/layout/pwa";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { I18nProvider } from "@/i18n";
+import { withBasePath } from "@/lib/base-path";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,10 +12,13 @@ export const metadata: Metadata = {
   description:
     "Kaltreifendruck für Mercedes-Benz Actros, Arocs und Atego direkt aus verifizierten Herstellertabellen – je Achse, mit Quellenangabe. Unabhängiges Projekt.",
   applicationName: "TruckPressure",
-  manifest: "/manifest.webmanifest",
+  manifest: withBasePath("/manifest.webmanifest"),
   icons: {
-    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [
+      { url: withBasePath("/icons/icon.svg"), type: "image/svg+xml" },
+      { url: withBasePath("/icons/icon-192.png"), sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: withBasePath("/icons/apple-touch-icon.png"), sizes: "180x180" }],
   },
   formatDetection: { telephone: false },
   robots: { index: true, follow: true },
