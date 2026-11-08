@@ -1,7 +1,7 @@
 "use client";
 
 import { FolderOpen, Save, Share2, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -9,26 +9,21 @@ import { Input } from "@/components/ui/input";
 import { DATASET_VERSION } from "@/data/pressure-tables";
 import { useI18n } from "@/i18n";
 import { encodeConfiguration, SHARE_PARAM, type SavedVehicle } from "@/lib/config-codec";
-import { loadSavedVehicles, storeSavedVehicles } from "@/lib/storage";
 import type { VehicleConfiguration } from "@/types/pressure";
 import { SectionHeading } from "./section-heading";
+import type { SavedVehiclesStore } from "./use-saved-vehicles";
 
 interface Props {
   config: VehicleConfiguration;
   onLoad: (config: VehicleConfiguration, datasetVersion: string) => void;
+  store: SavedVehiclesStore;
 }
 
-export function SavedVehicles({ config, onLoad }: Props) {
+export function SavedVehicles({ config, onLoad, store }: Props) {
   const { t, lang } = useI18n();
-  const [saved, setSaved] = useState<SavedVehicle[]>([]);
+  const { saved } = store;
   const [name, setName] = useState("");
   const [status, setStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Browser-only storage is read after hydration on purpose.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSaved(loadSavedVehicles());
-  }, []);
 
   function flash(message: string) {
     setStatus(message);
@@ -43,17 +38,9 @@ export function SavedVehicles({ config, onLoad }: Props) {
       datasetVersion: DATASET_VERSION,
       config,
     };
-    const next = [entry, ...saved];
-    setSaved(next);
-    storeSavedVehicles(next);
+    store.add(entry);
     setName("");
     flash(t("actions.saved"));
-  }
-
-  function remove(id: string) {
-    const next = saved.filter((s) => s.id !== id);
-    setSaved(next);
-    storeSavedVehicles(next);
   }
 
   async function share() {
@@ -110,13 +97,13 @@ export function SavedVehicles({ config, onLoad }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{s.name}</p>
                     <p className="text-xs text-subtle tabular">
-                      {s.config.factoryType || "–"} · {s.config.axles.length} × · {new Date(s.savedAt).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB")}
+                      {s.config.factoryType || "–"} · {s.config.axles.length} × · {new Date(s.savedAt).toLocaleDateString({ de: "de-DE", en: "en-GB", ru: "ru-RU" }[lang])}
                     </p>
                   </div>
                   <Button size="sm" variant="secondary" onClick={() => onLoad(s.config, s.datasetVersion)}>
                     {t("actions.load")}
                   </Button>
-                  <Button size="icon" variant="ghost" aria-label={`${t("actions.delete")}: ${s.name}`} onClick={() => remove(s.id)}>
+                  <Button size="icon" variant="ghost" aria-label={`${t("actions.delete")}: ${s.name}`} onClick={() => store.remove(s.id)}>
                     <Trash2 />
                   </Button>
                 </li>

@@ -23,7 +23,11 @@ per axle, with full source traceability.
   original table row(s) (*„Originaltabellenwerte anzeigen“*).
 - **Verification states**: glare-obscured cells are *unverified*, implausible printed values are
   *flagged*; neither is ever used for a recommendation.
-- German (default) / English, dark graphite and high-contrast daylight themes.
+- **Fast entry**: type the tyre sidewall marking (e.g. `315/80 R22.5 156/150`) and size, mounting
+  and load index are pre-selected when exactly one documented option matches; one-tap axle layouts
+  (4×2, 6×2 with trailing or lift axle, 6×4, 8×4); "same tyres as axle N"; steering axles default to
+  single mounting; saved vehicles load with one tap from the top.
+- German (default) / English / Russian, dark graphite and high-contrast daylight themes.
 - Last configuration and saved vehicles in `localStorage`; shareable links (configuration only,
   dataset version checked on open).
 - Installable PWA with offline support (dataset is part of the app bundle).

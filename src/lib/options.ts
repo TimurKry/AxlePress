@@ -1,5 +1,6 @@
 import type { Application, AxleConfiguration, AxleRole, Mounting, PressureRecord, TableAxle, VerificationStatus } from "@/types/pressure";
 import { getDataset, type Dataset } from "./dataset";
+import { loadIndexMatches, parseTireCode, type ParsedTireCode } from "./tire-code";
 import { getApplicableDocumentIds } from "./vehicle-types";
 
 /**
@@ -114,10 +115,36 @@ export function suggestTableAxle(
   return candidates.find((c) => available.includes(c)) ?? "";
 }
 
+/** The parsed sidewall code of an axle, if it refers to the axle's current tyre size. */
+export function activeTireCode(axle: Pick<AxleConfiguration, "tireCode" | "tireSize">): ParsedTireCode | null {
+  if (!axle.tireCode) return null;
+  const code = parseTireCode(axle.tireCode);
+  return code && code.tireSize === axle.tireSize ? code : null;
+}
+
+/** Mountings for which at least one documented load index matches the sidewall code. */
+export function mountingsMatchingCode(
+  scope: Scope,
+  tireSize: string,
+  code: ParsedTireCode,
+  dataset: Dataset = getDataset(),
+): Mounting[] {
+  const found = new Set(
+    scopeRecords(scope, dataset)
+      .filter((r) => r.tireSize === tireSize && loadIndexMatches(r.loadIndex, r.mounting, code))
+      .map((r) => r.mounting),
+  );
+  return (["single", "twin", "unspecified"] as Mounting[]).filter((m) => found.has(m));
+}
+
 /**
  * Bring an axle configuration into a consistent state: every dependent field must be one of
- * the documented options for its parents; otherwise it is cleared. Single options are
- * auto-selected (this is not a guess – there is only one documented choice).
+ * the documented options for its parents; otherwise it is cleared.
+ *
+ * Automatic pre-selection happens only where it is not a guess:
+ *  - exactly one documented option exists;
+ *  - exactly one documented option matches the tyre sidewall code entered by the user;
+ *  - steering (front) axles get single mounting – twin tyres are not fitted to steering axles.
  */
 export function normalizeAxle(
   axle: AxleConfiguration,
@@ -129,9 +156,17 @@ export function normalizeAxle(
   const sizes = getTireSizes(scope, dataset);
   if (!sizes.includes(next.tireSize)) next.tireSize = "";
   if (!next.tireSize) return { ...next, mounting: "", tableAxle: "", loadIndex: "" };
+  const code = activeTireCode(next);
 
   const mountings = getMountings(scope, next.tireSize, dataset);
-  if (!mountings.includes(next.mounting as Mounting)) next.mounting = mountings.length === 1 ? mountings[0] : "";
+  if (!mountings.includes(next.mounting as Mounting)) {
+    const byCode = code ? mountingsMatchingCode(scope, next.tireSize, code, dataset) : [];
+    if (mountings.length === 1) next.mounting = mountings[0];
+    else if (byCode.length === 1) next.mounting = byCode[0];
+    else if (next.role === "steering" && mountings.includes("single") && (byCode.length === 0 || byCode.includes("single")))
+      next.mounting = "single";
+    else next.mounting = "";
+  }
   if (!next.mounting) return { ...next, tableAxle: "", loadIndex: "" };
 
   const axles = getTableAxles(scope, next.tireSize, next.mounting, dataset);
@@ -141,6 +176,9 @@ export function normalizeAxle(
   if (!next.tableAxle) return { ...next, loadIndex: "" };
 
   const indices = getLoadIndices(scope, next.tireSize, next.mounting, next.tableAxle, dataset);
-  if (!indices.includes(next.loadIndex)) next.loadIndex = indices.length === 1 ? indices[0] : "";
+  if (!indices.includes(next.loadIndex)) {
+    const byCode = code ? indices.filter((li) => loadIndexMatches(li, next.mounting, code)) : [];
+    next.loadIndex = indices.length === 1 ? indices[0] : byCode.length === 1 ? byCode[0] : "";
+  }
   return next;
 }

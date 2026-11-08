@@ -12,7 +12,8 @@ import {
   renumberAxles,
   SHARE_PARAM,
 } from "@/lib/config-codec";
-import { hasAmbulanceTables, normalizeAxle } from "@/lib/options";
+import { getTireSizes, hasAmbulanceTables, normalizeAxle } from "@/lib/options";
+import { parseTireCode } from "@/lib/tire-code";
 import { loadLastConfiguration, saveLastConfiguration } from "@/lib/storage";
 import { familyForType, getTypeOptionsForFamily, matchesPattern } from "@/lib/vehicle-types";
 import type { Application, AxleConfiguration, AxleRole, VehicleConfiguration, VehicleFamily } from "@/types/pressure";
@@ -25,7 +26,9 @@ interface State {
   hydrated: boolean;
 }
 
-type AxlePatch = Partial<Pick<AxleConfiguration, "role" | "tireSize" | "mounting" | "tableAxle" | "loadIndex" | "axleLoadKg">>;
+type AxlePatch = Partial<
+  Pick<AxleConfiguration, "role" | "tireSize" | "mounting" | "tableAxle" | "loadIndex" | "axleLoadKg" | "tireCode">
+>;
 
 type Action =
   | { type: "hydrate"; config: VehicleConfiguration | null; datasetChangedFrom: string | null }
@@ -36,6 +39,7 @@ type Action =
   | { type: "addAxle" }
   | { type: "removeAxle"; id: string }
   | { type: "copyAxle"; fromId: string; toIds: string[] }
+  | { type: "applyLayout"; roles: AxleRole[] }
   | { type: "load"; config: VehicleConfiguration; datasetChangedFrom: string | null }
   | { type: "dismissNotice" }
   | { type: "reset" };
@@ -56,6 +60,23 @@ function normalizeConfig(config: VehicleConfiguration): VehicleConfiguration {
       return normalizeAxle(a, axles, scope);
     }),
   };
+}
+
+/**
+ * Apply a typed sidewall code: when the size is documented for the vehicle, select it and clear
+ * the dependent fields so that normalisation can pre-select from the code (only if unambiguous).
+ */
+function applyTireCode(next: AxleConfiguration, prev: AxleConfiguration, config: VehicleConfiguration, keepTableAxle: boolean) {
+  const code = parseTireCode(next.tireCode ?? "");
+  if (!code || !config.factoryType) return;
+  const sizes = getTireSizes({ vehicleType: config.factoryType, application: config.application });
+  if (!sizes.includes(code.tireSize)) return;
+  next.tireSize = code.tireSize;
+  if (code.tireSize !== prev.tireSize) {
+    next.mounting = "";
+    if (!keepTableAxle) next.tableAxle = "";
+  }
+  if (code.single !== null) next.loadIndex = "";
 }
 
 function withConfig(state: State, config: VehicleConfiguration, userTableAxle = state.userTableAxle): State {
@@ -79,13 +100,15 @@ function reducer(state: State, action: Action): State {
         datasetNotice: action.datasetChangedFrom ? { old: action.datasetChangedFrom } : null,
       };
     case "setFamily": {
+      const options = getTypeOptionsForFamily(action.family);
       const stillValid =
-        action.family === "advanced" ||
-        getTypeOptionsForFamily(action.family).some((o) => matchesPattern(config.factoryType, o.value));
+        action.family === "advanced" || options.some((o) => matchesPattern(config.factoryType, o.value));
+      // A family with a single documented factory type (e.g. Arocs → 964) is selected directly.
+      const only = action.family !== "advanced" && options.length === 1 ? options[0].value : "";
       return withConfig(state, {
         ...config,
         vehicleFamily: action.family,
-        factoryType: stillValid ? config.factoryType : "",
+        factoryType: stillValid ? config.factoryType : only,
       });
     }
     case "setFactoryType":
@@ -102,6 +125,11 @@ function reducer(state: State, action: Action): State {
         if (a.id !== action.id) return a;
         const next = { ...a, ...action.patch };
         if (action.patch.role && action.patch.role !== a.role && !userTableAxle[a.id]) next.tableAxle = "";
+        if (action.patch.tireCode !== undefined) applyTireCode(next, a, config, !!userTableAxle[a.id]);
+        // Picking a different size by hand makes an older sidewall code irrelevant.
+        if (action.patch.tireSize !== undefined && action.patch.tireCode === undefined && action.patch.tireSize !== a.tireSize) {
+          next.tireCode = "";
+        }
         if (action.patch.tableAxle !== undefined) userTableAxle[a.id] = action.patch.tableAxle !== "";
         return next;
       });
@@ -131,10 +159,20 @@ function reducer(state: State, action: Action): State {
           tireSize: source.tireSize,
           mounting: source.mounting,
           loadIndex: source.loadIndex,
+          tireCode: source.tireCode ?? "",
           tableAxle: userTableAxle[a.id] ? a.tableAxle : "",
         };
       });
       return withConfig(state, { ...config, axles }, userTableAxle);
+    }
+    case "applyLayout": {
+      // Only the number of axles and their functions change; tyre data of existing axles is kept,
+      // table axles are re-suggested from the new functions.
+      const axles = action.roles.map((role, i) => {
+        const existing = config.axles[i];
+        return existing ? { ...existing, role, tableAxle: "" as const } : createAxle(i + 1, role);
+      });
+      return withConfig(state, { ...config, axles }, {});
     }
     case "dismissNotice":
       return { ...state, datasetNotice: null };
@@ -189,6 +227,7 @@ export function useCalculator() {
       addAxle: () => dispatch({ type: "addAxle" }),
       removeAxle: (id: string) => dispatch({ type: "removeAxle", id }),
       copyAxle: (fromId: string, toIds: string[]) => dispatch({ type: "copyAxle", fromId, toIds }),
+      applyLayout: (roles: AxleRole[]) => dispatch({ type: "applyLayout", roles }),
       load: (config: VehicleConfiguration, savedDatasetVersion: string) =>
         dispatch({
           type: "load",

@@ -2,7 +2,7 @@
 
 import { Gauge, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useI18n, type Lang } from "@/i18n";
+import { LANGS, useI18n } from "@/i18n";
 import { loadPreference, storePreference } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ export function SiteHeader() {
         </a>
         <div className="flex items-center gap-2">
           <div role="group" aria-label={t("header.language")} className="flex rounded-xl border border-border bg-surface-2 p-0.5">
-            {(["de", "en"] as Lang[]).map((l) => (
+            {LANGS.map((l) => (
               <button
                 key={l}
                 type="button"
@@ -53,7 +53,7 @@ export function SiteHeader() {
                 data-testid={`lang-${l}`}
                 onClick={() => setLang(l)}
                 className={cn(
-                  "h-9 min-w-11 rounded-lg px-2.5 text-sm font-semibold uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "h-9 min-w-10 rounded-lg px-2 text-sm font-semibold uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   lang === l ? "bg-surface-3 text-text" : "text-subtle hover:text-text",
                 )}
               >

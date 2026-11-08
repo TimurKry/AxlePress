@@ -39,7 +39,7 @@ export function SourceRowsView({ rows, highlightKg, matchedRecordId }: Props) {
                 <thead>
                   <tr className="bg-surface-3 text-xs text-muted">
                     <th scope="row" className="sticky left-0 bg-surface-3 px-2 py-1.5 text-left font-medium">
-                      kg
+                      {t("unit.kg")}
                     </th>
                     {columns.map((c, i) => (
                       <th
@@ -61,7 +61,7 @@ export function SourceRowsView({ rows, highlightKg, matchedRecordId }: Props) {
                 <tbody>
                   <tr>
                     <th scope="row" className="sticky left-0 bg-surface px-2 py-1.5 text-left text-xs font-medium text-muted">
-                      bar
+                      {t("results.bar")}
                     </th>
                     {cells.map((cell, i) => {
                       const recordId = `${table.id}:r${rowIndex}:c${i}`;

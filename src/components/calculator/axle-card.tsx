@@ -1,17 +1,26 @@
 "use client";
 
-import { ChevronDown, CircleCheck, CircleDot, Copy, Trash2, TriangleAlert } from "lucide-react";
+import { ChevronDown, CircleCheck, CircleDot, Copy, CopyCheck, ScanLine, Trash2, TriangleAlert } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { describedBy, Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Segmented } from "@/components/ui/segmented";
 import { useI18n } from "@/i18n";
 import type { MessageKey } from "@/i18n/de";
 import type { AxleResult } from "@/lib/axle-results";
 import { MIN_AXLES } from "@/lib/config-codec";
-import { getDocumentedLoads, getLoadIndices, getMountings, getTableAxles, getTireSizes, type Scope } from "@/lib/options";
+import {
+  getDocumentedLoads,
+  getLoadIndices,
+  getMountings,
+  getTableAxles,
+  getTireSizes,
+  type Scope,
+} from "@/lib/options";
+import { parseTireCode } from "@/lib/tire-code";
 import { cn } from "@/lib/utils";
 import type { AxleConfiguration, AxleRole, Mounting, TableAxle } from "@/types/pressure";
 
@@ -26,13 +35,28 @@ interface Props {
   onChange: (patch: Partial<AxleConfiguration>) => void;
   onRemove: () => void;
   onCopyTo: (targetIds: string[]) => void;
+  onCopyFrom: (sourceId: string) => void;
 }
 
 export function loadIndexLabel(key: string, t: (k: MessageKey) => string): string {
   return key === "-" ? t("loadIndex.none") : key;
 }
 
-export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, onChange, onRemove, onCopyTo }: Props) {
+function sameTyres(a: AxleConfiguration, b: AxleConfiguration): boolean {
+  return a.tireSize === b.tireSize && a.mounting === b.mounting && a.loadIndex === b.loadIndex;
+}
+
+export function AxleCard({
+  axle,
+  allAxles,
+  scope,
+  result,
+  tableAxleSuggested,
+  onChange,
+  onRemove,
+  onCopyTo,
+  onCopyFrom,
+}: Props) {
   const { t, formatKg, formatPressure } = useI18n();
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
@@ -63,8 +87,24 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
   const loadValue = loadText ?? (axle.axleLoadKg === null ? "" : String(axle.axleLoadKg));
   const loadInvalid = loadText !== null && loadText.trim() !== "" && !/^\d{1,6}$/.test(loadText.trim());
   const others = allAxles.filter((a) => a.id !== axle.id);
-  const title = t("axle.label", { n: axle.position });
-  const hideTableAxle = tableAxles.length === 1 && tableAxles[0] === "any";
+  const previous = allAxles.find((a) => a.position === axle.position - 1);
+  const canCopyPrevious = !!scope && !!previous?.tireSize && !sameTyres(previous, axle);
+  const hideTableAxle = tableAxles.length === 0 || (tableAxles.length === 1 && tableAxles[0] === "any");
+
+  // Feedback for the sidewall quick entry
+  const codeText = axle.tireCode ?? "";
+  const parsedCode = codeText.trim() ? parseTireCode(codeText) : null;
+  let codeHint: string = t("axle.codeHint");
+  let codeError: string | undefined;
+  if (codeText.trim() && scope) {
+    if (!parsedCode) codeError = t("axle.codeInvalid");
+    else if (!sizes.includes(parsedCode.tireSize)) codeError = t("axle.codeUnknownSize", { size: parsedCode.tireSize });
+    else
+      codeHint = t("axle.codeRecognized", {
+        size: parsedCode.tireSize,
+        li: parsedCode.single === null ? "–" : `${parsedCode.single}${parsedCode.twin ? `/${parsedCode.twin}` : ""}`,
+      });
+  }
 
   function setLoad(raw: string) {
     setLoadText(raw);
@@ -76,12 +116,12 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
 
   return (
     <Card data-testid={`axle-card-${axle.position}`} className="animate-fade-in">
-      <CardHeader className="items-center">
+      <CardHeader className="items-center pb-0">
         <div className="flex items-center gap-3">
           <span className="grid size-9 place-items-center rounded-xl bg-surface-3 text-sm font-bold text-accent tabular">
             {axle.position}
           </span>
-          <h3 className="text-base font-semibold">{title}</h3>
+          <h3 className="text-base font-semibold">{t("axle.label", { n: axle.position })}</h3>
         </div>
         <div className="flex items-center gap-1">
           {others.length > 0 && (
@@ -104,7 +144,7 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
                   setCopyNote(t("axle.copied", { from: axle.position }));
                   window.setTimeout(() => setCopyNote(null), 2500);
                 }}
-                className="h-10 w-12 cursor-pointer appearance-none rounded-xl border border-border bg-surface-2 text-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 sm:w-auto sm:pl-9 sm:pr-3 sm:text-sm sm:text-muted"
+                className="h-10 w-10 cursor-pointer appearance-none rounded-xl border border-border bg-surface-2 text-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 sm:w-auto sm:pl-9 sm:pr-3 sm:text-sm sm:text-muted"
               >
                 <option value="">{t("axle.copyTo")}</option>
                 {others.map((o) => (
@@ -129,12 +169,47 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
           )}
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">
+      <CardContent className="grid grid-cols-2 gap-x-3 gap-y-3.5">
         {copyNote && (
-          <p role="status" className="text-sm text-ok sm:col-span-2">
+          <p role="status" className="col-span-2 text-sm text-ok">
             {copyNote}
           </p>
         )}
+
+        <Field id={id("code")} label={t("axle.code")} hint={codeHint} error={codeError} className="col-span-2">
+          <div className="relative">
+            <ScanLine aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-subtle" />
+            <Input
+              id={id("code")}
+              data-testid={`tire-code-${axle.position}`}
+              className="pl-11"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              enterKeyHint="next"
+              disabled={!scope}
+              placeholder={t("axle.codePlaceholder")}
+              value={codeText}
+              aria-invalid={!!codeError}
+              aria-describedby={describedBy(id("code"), true, codeError)}
+              onChange={(e) => onChange({ tireCode: e.target.value })}
+            />
+          </div>
+        </Field>
+
+        {canCopyPrevious && previous && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="col-span-2"
+            data-testid={`same-as-previous-${axle.position}`}
+            onClick={() => onCopyFrom(previous.id)}
+          >
+            <CopyCheck />
+            {t("axle.sameAs", { n: previous.position })}
+          </Button>
+        )}
+
         <Field id={id("role")} label={t("axle.role")}>
           <NativeSelect
             id={id("role")}
@@ -167,22 +242,27 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
           </NativeSelect>
         </Field>
 
-        <Field id={id("mounting")} label={t("axle.mounting")}>
-          <NativeSelect
-            id={id("mounting")}
-            data-testid={`mounting-${axle.position}`}
+        {mountings.length > 0 ? (
+          <Segmented<Mounting>
+            name={id("mounting")}
+            label={t("axle.mounting")}
             value={axle.mounting}
-            disabled={mountings.length === 0}
-            onChange={(e) => onChange({ mounting: e.target.value as Mounting | "" })}
-          >
-            <option value="">{t("axle.mountingPlaceholder")}</option>
-            {mountings.map((m) => (
-              <option key={m} value={m}>
-                {t(`mounting.${m}`)}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
+            className="col-span-2"
+            columns={mountings.length === 1 ? "grid-cols-1" : "grid-cols-2"}
+            onChange={(m) => onChange({ mounting: m })}
+            options={mountings.map((m) => ({
+              value: m,
+              label: t(`mounting.${m}`),
+              testId: `mounting-${axle.position}-${m}`,
+            }))}
+          />
+        ) : (
+          <Field id={id("mounting")} label={t("axle.mounting")} className="col-span-2">
+            <NativeSelect id={id("mounting")} disabled value="">
+              <option value="">{t("axle.mountingPlaceholder")}</option>
+            </NativeSelect>
+          </Field>
+        )}
 
         {!hideTableAxle && (
           <Field
@@ -194,7 +274,6 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
               id={id("table-axle")}
               data-testid={`table-axle-${axle.position}`}
               value={axle.tableAxle}
-              disabled={tableAxles.length === 0}
               aria-describedby={describedBy(id("table-axle"), tableAxleSuggested && axle.tableAxle && tableAxles.length > 1)}
               onChange={(e) => onChange({ tableAxle: e.target.value as TableAxle | "" })}
             >
@@ -208,13 +287,18 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
           </Field>
         )}
 
-        <Field id={id("li")} label={t("axle.loadIndex")} hint={t("axle.loadIndexHint")}>
+        <Field
+          id={id("li")}
+          label={t("axle.loadIndex")}
+          hint={hideTableAxle ? t("axle.loadIndexHint") : undefined}
+          className={hideTableAxle ? "col-span-2" : undefined}
+        >
           <NativeSelect
             id={id("li")}
             data-testid={`load-index-${axle.position}`}
             value={axle.loadIndex}
             disabled={loadIndices.length === 0}
-            aria-describedby={describedBy(id("li"), true)}
+            aria-describedby={describedBy(id("li"), hideTableAxle)}
             onChange={(e) => onChange({ loadIndex: e.target.value })}
           >
             <option value="">{t("axle.loadIndexPlaceholder")}</option>
@@ -231,7 +315,7 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
           label={t("axle.load")}
           hint={t("axle.loadHint")}
           error={loadInvalid ? t("axle.loadInvalid") : undefined}
-          className="sm:col-span-2"
+          className="col-span-2"
         >
           <div className="relative">
             <Input
@@ -249,12 +333,12 @@ export function AxleCard({ axle, allAxles, scope, result, tableAxleSuggested, on
               onChange={(e) => setLoad(e.target.value)}
               onBlur={() => setLoadText(null)}
             />
-            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-subtle">kg</span>
+            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-subtle">{t("unit.kg")}</span>
           </div>
         </Field>
 
         {documentedLoads.length > 0 && (
-          <details className="group sm:col-span-2" data-testid={`documented-loads-toggle-${axle.position}`}>
+          <details className="group col-span-2" data-testid={`documented-loads-toggle-${axle.position}`}>
             <summary className="flex min-h-10 cursor-pointer items-center justify-between gap-2 rounded-lg text-sm text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <span>
                 {t("axle.documentedLoads")} <span className="text-subtle">({documentedLoads.length})</span>
@@ -314,11 +398,15 @@ function InlineResult({
       role="status"
       aria-live="polite"
       className={cn(
-        "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm sm:col-span-2",
+        "col-span-2 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm",
         r.status === "exact" ? "bg-ok-bg text-ok" : "bg-warn-bg text-warn",
       )}
     >
-      {r.status === "exact" ? <CircleCheck aria-hidden className="size-4 shrink-0" /> : <TriangleAlert aria-hidden className="size-4 shrink-0" />}
+      {r.status === "exact" ? (
+        <CircleCheck aria-hidden className="size-4 shrink-0" />
+      ) : (
+        <TriangleAlert aria-hidden className="size-4 shrink-0" />
+      )}
       {r.status === "exact" ? (
         <span>
           <strong className="text-base tabular">
@@ -329,7 +417,10 @@ function InlineResult({
       ) : (
         <span>{t(`reason.${r.reason}`)}</span>
       )}
-      <a href="#results" className="ml-auto inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium underline-offset-2 hover:underline">
+      <a
+        href="#results"
+        className="ml-auto inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium underline-offset-2 hover:underline"
+      >
         <CircleDot aria-hidden className="size-3.5" />
         {t("results.jump")}
       </a>

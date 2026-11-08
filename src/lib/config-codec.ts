@@ -20,6 +20,7 @@ const axleSchema = z.object({
   loadIndex: z.string().max(60),
   mounting: z.enum(["", "single", "twin", "unspecified"]),
   axleLoadKg: z.number().int().min(0).max(100_000).nullable(),
+  tireCode: z.string().max(60).optional(),
 });
 
 export const vehicleConfigurationSchema = z.object({

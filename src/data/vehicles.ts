@@ -117,7 +117,7 @@ export const FAMILY_MAPPINGS: FamilyMapping[] = [
   {
     family: "actros",
     series: "963",
-    label: "Actros (ab 2011, Actros 4/5) · auch Antos",
+    label: "Actros (2011+, Actros 4/5) · Antos",
     status: "public-reference",
     references: [
       "https://www.transportengineer.org.uk/content/dsva-recalls/mercedes-benz-actros-963-actros-ii-iii-antos-963-arocs-964-atego-ii-atego-967-axor-ii-2013-2017-builds",
@@ -134,7 +134,7 @@ export const FAMILY_MAPPINGS: FamilyMapping[] = [
   {
     family: "arocs",
     series: "964",
-    label: "Arocs (ab 2013)",
+    label: "Arocs (2013+)",
     status: "public-reference",
     references: [
       "https://www.transportengineer.org.uk/content/dsva-recalls/mercedes-benz-actros-963-actros-ii-iii-antos-963-arocs-964-atego-ii-atego-967-axor-ii-2013-2017-builds",
@@ -144,7 +144,7 @@ export const FAMILY_MAPPINGS: FamilyMapping[] = [
   {
     family: "atego",
     series: "967",
-    label: "Atego (ab 2013)",
+    label: "Atego (2013+)",
     status: "public-reference",
     references: [
       "https://www.transportengineer.org.uk/content/dsva-recalls/mercedes-benz-actros-963-actros-ii-iii-antos-963-arocs-964-atego-ii-atego-967-axor-ii-2013-2017-builds",

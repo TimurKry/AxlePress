@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { de } from "./de";
 import { en } from "./en";
+import { ru } from "./ru";
 import { interpolate } from "./index";
 
 describe("i18n", () => {
-  it("has the same keys and placeholders in German and English", () => {
-    expect(Object.keys(en).sort()).toEqual(Object.keys(de).sort());
+  it.each([
+    ["en", en],
+    ["ru", ru],
+  ])("%s has the same keys and placeholders as German", (_, dict) => {
+    expect(Object.keys(dict).sort()).toEqual(Object.keys(de).sort());
     for (const key of Object.keys(de) as (keyof typeof de)[]) {
       const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
-      expect(placeholders(en[key]), key).toEqual(placeholders(de[key]));
-      expect(en[key].trim().length, key).toBeGreaterThan(0);
+      expect(placeholders(dict[key]), key).toEqual(placeholders(de[key]));
+      expect(dict[key].trim().length, key).toBeGreaterThan(0);
     }
   });
 

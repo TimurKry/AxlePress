@@ -52,7 +52,7 @@ export function AxleResultCard({ config, axle, result }: Props) {
     [t("detail.loadIndex"), loadIndexLabel(axle.loadIndex, t)],
     [t("detail.tableAxle"), t(`tableAxle.${result.input.axlePosition}`)],
     [t("detail.mounting"), t(`mounting.${result.input.mounting}`)],
-    [t("detail.axleLoad"), `${formatKg(result.input.axleLoadKg)} kg`],
+    [t("detail.axleLoad"), `${formatKg(result.input.axleLoadKg)} ${t("unit.kg")}`],
   ];
   if (config.application === "ambulance") details.splice(2, 0, [t("vehicle.application"), t("application.ambulance")]);
 
@@ -61,7 +61,7 @@ export function AxleResultCard({ config, axle, result }: Props) {
       <li className="flex justify-between gap-3">
         <span className="text-subtle">{label}</span>
         <span className="tabular text-muted">
-          {formatKg(n.axleLoadKg)} kg → {formatPressure(n.pressureBar, n.pressureDecimals)} {t("results.bar")}
+          {formatKg(n.axleLoadKg)} {t("unit.kg")} → {formatPressure(n.pressureBar, n.pressureDecimals)} {t("results.bar")}
         </span>
       </li>
     ) : null;
@@ -131,7 +131,7 @@ export function AxleResultCard({ config, axle, result }: Props) {
           {exact && (
             <>
               <dt className="text-subtle">{t("results.matchedLoad")}</dt>
-              <dd className="text-right font-medium tabular">{formatKg(r.matchedAxleLoadKg)} kg</dd>
+              <dd className="text-right font-medium tabular">{formatKg(r.matchedAxleLoadKg)} {t("unit.kg")}</dd>
               <dt className="text-subtle">{t("results.source")}</dt>
               <dd className="text-right font-medium" data-testid={`source-${axle.position}`}>
                 <span className="inline-flex items-center gap-1">

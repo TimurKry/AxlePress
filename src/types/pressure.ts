@@ -199,6 +199,11 @@ export interface AxleConfiguration {
   loadIndex: string;
   mounting: Mounting | "";
   axleLoadKg: number | null;
+  /**
+   * Optional quick-entry text from the tyre sidewall (e.g. "315/80 R22.5 156/150").
+   * Only used to pre-select documented options when exactly one matches.
+   */
+  tireCode?: string;
 }
 
 export type VehicleFamily = "actros" | "arocs" | "atego" | "advanced";

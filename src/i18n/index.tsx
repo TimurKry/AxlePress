@@ -4,9 +4,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { loadPreference, storePreference } from "@/lib/storage";
 import { de, type MessageKey } from "./de";
 import { en } from "./en";
+import { ru } from "./ru";
 
-export type Lang = "de" | "en";
-const DICTIONARIES: Record<Lang, Record<MessageKey, string>> = { de, en };
+export type Lang = "de" | "en" | "ru";
+export const LANGS: Lang[] = ["de", "en", "ru"];
+const DICTIONARIES: Record<Lang, Record<MessageKey, string>> = { de, en, ru };
+const LOCALES: Record<Lang, string> = { de: "de-DE", en: "en-GB", ru: "ru-RU" };
+
+function isLang(value: string | null): value is Lang {
+  return value !== null && (LANGS as string[]).includes(value);
+}
 
 export type TFunction = (key: MessageKey, params?: Record<string, string | number>) => string;
 
@@ -36,7 +43,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("lang");
     const stored = loadPreference("lang");
-    const initial = fromUrl === "en" || fromUrl === "de" ? fromUrl : stored === "en" ? "en" : "de";
+    // German is the default; a language chosen via link or switch is remembered.
+    const initial: Lang = isLang(fromUrl) ? fromUrl : isLang(stored) ? stored : "de";
     // Reading browser-only state after hydration is intentional here.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLangState(initial);
@@ -52,7 +60,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<I18nContextValue>(() => {
-    const locale = lang === "de" ? "de-DE" : "en-GB";
+    const locale = LOCALES[lang];
     return {
       lang,
       setLang,

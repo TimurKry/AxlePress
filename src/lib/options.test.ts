@@ -77,3 +77,37 @@ describe("dependent options", () => {
     expect(hasAmbulanceTables("963")).toBe(false);
   });
 });
+
+describe("quick entry and defaults", () => {
+  it("pre-selects mounting and load index from the sidewall code when unambiguous", () => {
+    const rear = axle({ id: "r", role: "driven", tireSize: "315/80 R 22,5", tireCode: "315/80 R22.5 156/150 L" });
+    // 315/80 R 22,5 exists single (154, 156) and twin (154/150, 156/150) – the code alone matches both mountings
+    const n = normalizeAxle(rear, [rear], scope963);
+    expect(n.mounting).toBe("");
+    const twin = normalizeAxle({ ...rear, mounting: "twin" }, [rear], scope963);
+    expect(twin).toMatchObject({ tableAxle: "any", loadIndex: "156/150" });
+    const single = normalizeAxle({ ...rear, mounting: "single" }, [rear], scope963);
+    expect(single).toMatchObject({ loadIndex: "156" });
+  });
+
+  it("selects the mounting from the code when only one mounting matches", () => {
+    const a = axle({ id: "x", role: "driven", tireSize: "9,5 R 17,5", tireCode: "9.5 R 17.5 129/127" });
+    // EB 129 · ZW 127 only exists on the rear axle (twin); VA single "EB 129" also matches 129 → two mountings
+    expect(normalizeAxle(a, [a], scope967).mounting).toBe("");
+    const b = axle({ id: "y", role: "driven", tireSize: "315/70 R 22,5", tireCode: "315/70 R22.5 154/150" });
+    // single table has 315/70 LI 154 (matches 154), twin table has 148/150 (150 matches twin) → still two
+    expect(normalizeAxle(b, [b], scope963).mounting).toBe("");
+  });
+
+  it("ignores a code that refers to a different tyre size", () => {
+    const a = axle({ id: "z", role: "driven", tireSize: "385/65 R 22,5", mounting: "single", tableAxle: "any", tireCode: "315/80 R22.5 156" });
+    expect(normalizeAxle(a, [a], scope963).loadIndex).toBe("");
+  });
+
+  it("defaults steering axles to single mounting", () => {
+    const front = axle({ id: "f", role: "steering", tireSize: "315/80 R 22,5" });
+    expect(normalizeAxle(front, [front], scope963)).toMatchObject({ mounting: "single", tableAxle: "any", loadIndex: "" });
+    const drive = axle({ id: "d", role: "driven", tireSize: "315/80 R 22,5" });
+    expect(normalizeAxle(drive, [drive], scope963).mounting).toBe("");
+  });
+});
