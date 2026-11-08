@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Dark graphite is the default; "light" is a high-contrast daylight theme.
+ * Theme is set via [data-theme] on <html> (see layout.tsx inline script).
+ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c0e11;
+  --surface: #14171c;
+  --surface-2: #1b1f25;
+  --surface-3: #232831;
+  --border: #2b313a;
+  --border-strong: #3a424e;
+  --text: #f3f5f7;
+  --muted: #a3acb8;
+  --subtle: #7b8592;
+  --accent: #4fc3f7;
+  --accent-strong: #8ad8fb;
+  --accent-contrast: #04141c;
+  --silver: #c9d0d8;
+  --ok: #4ade80;
+  --ok-bg: rgba(74, 222, 128, 0.08);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, 0.08);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.08);
+  --ring: rgba(79, 195, 247, 0.55);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef0f3;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --surface-3: #e9ecf0;
+  --border: #d3d8df;
+  --border-strong: #aab2bd;
+  --text: #0b0d10;
+  --muted: #3f4855;
+  --subtle: #5b6573;
+  --accent: #006a9e;
+  --accent-strong: #00547d;
+  --accent-contrast: #ffffff;
+  --silver: #4a535f;
+  --ok: #08752f;
+  --ok-bg: rgba(8, 117, 47, 0.07);
+  --warn: #8a5a00;
+  --warn-bg: rgba(180, 120, 0, 0.09);
+  --danger: #b42318;
+  --danger-bg: rgba(180, 35, 24, 0.07);
+  --ring: rgba(0, 106, 158, 0.45);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-silver: var(--silver);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-ring: var(--ring);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 4.5rem;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100dvh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Subtle brushed-metal header accent line */
+.metal-line {
+  background: linear-gradient(90deg, transparent, var(--silver), var(--accent), var(--silver), transparent);
+  opacity: 0.55;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 180ms ease-out;
+}
