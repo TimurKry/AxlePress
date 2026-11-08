@@ -1,5 +1,12 @@
 # Vehicle mapping
 
+> **UI since dataset 2026.11.1 / app update 2026-11-08:** the app no longer asks for a model or
+> Baumuster. Within each rim size the manufacturer publishes a single table for all listed truck
+> types, so the UI uses two table groups: **truck** (01C 17,5″, 01D 19,5″, 01F 22,5″) and **vario**
+> (D-01C, types 667/668/670 incl. rescue vehicle). The Baumuster matching described below is kept in
+> `src/lib/vehicle-types.ts` (API, tests) but is not shown in the UI. Consequence: the explicit
+> exclusion of 956.264/265 from the 22,5″ table is no longer checked in the UI – see LIMITATIONS.md.
+
 ## 1. Factory types per document (authoritative – from the manufacturer documents)
 
 | Document | "Typ" line as printed | Expanded patterns |

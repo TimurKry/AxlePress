@@ -10,13 +10,16 @@ import { useI18n } from "@/i18n";
 import { AXLE_LAYOUTS, matchesLayout } from "@/lib/axle-layouts";
 import { MAX_AXLES, MIN_AXLES } from "@/lib/config-codec";
 import { cn } from "@/lib/utils";
+import { Segmented } from "@/components/ui/segmented";
+import { isVehicleGroup, type VehicleGroup } from "@/data/vehicles";
+import { hasAmbulanceTables } from "@/lib/options";
 import { getApplicableDocumentIds } from "@/lib/vehicle-types";
+import type { Application } from "@/types/pressure";
 import { AxleCard } from "./axle-card";
 import { SavedVehicles } from "./saved-vehicles";
 import { SectionHeading } from "./section-heading";
 import { useCalculator } from "./use-calculator";
 import { useSavedVehicles } from "./use-saved-vehicles";
-import { VehicleSection } from "./vehicle-section";
 
 export function Calculator() {
   const { t } = useI18n();
@@ -26,11 +29,12 @@ export function Calculator() {
 
   const scope = useMemo(
     () =>
-      config.factoryType && getApplicableDocumentIds(config.factoryType).size > 0
+      getApplicableDocumentIds(config.factoryType).size > 0
         ? { vehicleType: config.factoryType, application: config.application }
         : null,
     [config.factoryType, config.application],
   );
+  const group: VehicleGroup = isVehicleGroup(config.factoryType) ? config.factoryType : "truck";
   const ok = results.filter((r) => r.kind === "lookup" && r.result.status === "exact").length;
 
   return (
@@ -66,20 +70,37 @@ export function Calculator() {
         </nav>
       )}
 
-      <VehicleSection
-        config={config}
-        onFamily={actions.setFamily}
-        onFactoryType={actions.setFactoryType}
-        onApplication={actions.setApplication}
-      />
-
       <section aria-labelledby="axles-heading" id="axles" className="scroll-mt-20">
         <Card className="border-transparent bg-transparent shadow-none">
           <CardHeader className="px-0 pt-0 sm:px-0 sm:pt-0">
-            <SectionHeading id="axles-heading" icon={<Settings2 />} title={t("axles.title")} step={t("axles.step")} />
+            <SectionHeading id="axles-heading" icon={<Settings2 />} title={t("axles.title")} />
             <span className="text-xs text-subtle">{t("axles.limit", { min: MIN_AXLES, max: MAX_AXLES })}</span>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 px-0 pb-0 sm:px-0 sm:pb-0">
+            <Segmented<VehicleGroup>
+              name="table-group"
+              label={t("axles.tables")}
+              value={group}
+              columns="grid-cols-2"
+              onChange={actions.setGroup}
+              options={[
+                { value: "truck", label: t("group.truck"), testId: "group-truck" },
+                { value: "vario", label: t("group.vario"), testId: "group-vario" },
+              ]}
+            />
+            {group === "vario" && hasAmbulanceTables("vario") && (
+              <Segmented<Application>
+                name="application"
+                label={t("vehicle.application")}
+                value={config.application}
+                columns="grid-cols-1 sm:grid-cols-2"
+                onChange={actions.setApplication}
+                options={[
+                  { value: "standard", label: t("application.standard") },
+                  { value: "ambulance", label: t("application.ambulance"), testId: "application-ambulance" },
+                ]}
+              />
+            )}
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-1.5 text-sm font-medium text-muted">{t("axles.layout")}</legend>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="axle-layouts">
@@ -145,7 +166,8 @@ export function Calculator() {
 
       <SavedVehicles config={config} onLoad={actions.load} store={savedStore} />
 
-      {/* Mobile quick access to the result overview */}
+      {/* Mobile quick access to the result overview – only once the vehicle diagram is in use */}
+      {results.some((r) => r.kind === "lookup") && (
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden">
         <a
           href="#results"
@@ -155,6 +177,7 @@ export function Calculator() {
           {t("results.jump")} · {ok}/{results.length}
         </a>
       </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DATASET_VERSION } from "@/data/pressure-tables";
 import { DOCUMENTS } from "@/data/documents";
+import { isVehicleGroup } from "@/data/vehicles";
 import { useI18n } from "@/i18n";
 import type { AxleResult } from "@/lib/axle-results";
 import { getSeriesRows } from "@/lib/source-rows";
@@ -45,9 +46,9 @@ export function AxleResultCard({ config, axle, result }: Props) {
   const r = result.result;
   const exact = r.status === "exact";
   const factoryType = config.factoryType;
+  const tables = isVehicleGroup(factoryType) ? t(`group.${factoryType}`) : factoryType;
   const details: [string, string][] = [
-    [t("detail.vehicle"), config.vehicleFamily ? t(`family.${config.vehicleFamily}`) : "–"],
-    [t("detail.factoryType"), factoryType],
+    [t("axles.tables"), tables],
     [t("detail.tireSize"), axle.tireSize],
     [t("detail.loadIndex"), loadIndexLabel(axle.loadIndex, t)],
     [t("detail.tableAxle"), t(`tableAxle.${result.input.axlePosition}`)],

@@ -89,7 +89,8 @@ export function AxleCard({
   const others = allAxles.filter((a) => a.id !== axle.id);
   const previous = allAxles.find((a) => a.position === axle.position - 1);
   const canCopyPrevious = !!scope && !!previous?.tireSize && !sameTyres(previous, axle);
-  const hideTableAxle = tableAxles.length === 0 || (tableAxles.length === 1 && tableAxles[0] === "any");
+  // Only ask for the table axle when the table actually offers a choice (17,5″ / 19,5″).
+  const hideTableAxle = tableAxles.length <= 1;
 
   // Feedback for the sidewall quick entry
   const codeText = axle.tireCode ?? "";

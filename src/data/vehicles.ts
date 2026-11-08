@@ -170,3 +170,22 @@ export const FAMILY_MAPPINGS: FamilyMapping[] = [
 ];
 
 export const FAMILIES: Exclude<VehicleFamily, "advanced">[] = ["actros", "arocs", "atego"];
+
+/**
+ * Table groups used by the UI instead of a model selection.
+ *
+ * Within a rim size the manufacturer publishes ONE table for all listed truck types
+ * (Actros, Arocs, Atego, Axor, Econic …), so the truck tables apply regardless of model.
+ * Only the Vario (types 667/668/670) has its own, different table.
+ */
+export const VEHICLE_GROUPS = {
+  truck: ["AP40.15-W-4060-01C", "AP40.15-W-4060-01D", "AP40.15-W-4060-01F"],
+  vario: ["AP40.15-D-4060-01C"],
+} as const satisfies Record<string, readonly DocumentId[]>;
+
+export type VehicleGroup = keyof typeof VEHICLE_GROUPS;
+export const DEFAULT_VEHICLE_GROUP: VehicleGroup = "truck";
+
+export function isVehicleGroup(value: string): value is VehicleGroup {
+  return Object.prototype.hasOwnProperty.call(VEHICLE_GROUPS, value);
+}

@@ -28,6 +28,13 @@ vehicle's type plate / data card or the tyre manufacturer's specifications.
 
 ## Data-specific limitations
 
+- **No model selection**: the truck tables (17,5″ / 19,5″ / 22,5″) are applied to every truck. The
+  documents list the factory types they apply to (see VEHICLE_MAPPING.md); the 22,5″ table explicitly
+  excludes 956.264/265. Vario (667/668/670) has its own tables and must be selected separately.
+- **Search ladder**: consecutive documented columns with the same verified value are shown as one
+  line ("4 600 … 8 700 kg → 5,0 bar"). Only documented columns are listed; unverified / flagged cells
+  appear without a value. An axle load between two columns still gives no exact value.
+
 - **22,5″ tables (01F)** do not distinguish axles – the same value applies to any axle with the given
   tyre, load index, mounting and axle load.
 - **17,5″ / 19,5″ tables**: single vs. twin is derived from whether the row lists a ZW load index

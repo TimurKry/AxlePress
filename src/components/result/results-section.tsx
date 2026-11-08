@@ -18,7 +18,7 @@ export function ResultsSection({ config, results }: { config: VehicleConfigurati
     <section id="results" aria-labelledby="results-heading" className="scroll-mt-20">
       <Card>
         <CardHeader>
-          <SectionHeading id="results-heading" icon={<Gauge />} title={t("results.title")} step={t("results.step")} />
+          <SectionHeading id="results-heading" icon={<Gauge />} title={t("results.title")} />
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="rounded-xl border border-border bg-surface-2 p-3">

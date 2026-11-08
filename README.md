@@ -11,6 +11,12 @@ per axle, with full source traceability.
 
 ## Features
 
+- **Search first, no model selection**: type a tyre size (`315/80`, or the full sidewall marking
+  `315/80 R22.5 156/150`), pick the load index and see the complete table row as a ladder
+  *axle load → pressure* plus the documented range. Entering the axle load is optional and shows the
+  exact table value. Within a rim size the manufacturer publishes one table for all truck types, so a
+  model is not needed; only the Vario (types 667/668/670) has its own tables (separate switch).
+
 - **Exact, deterministic lookup** from transcribed manufacturer tables – no interpolation, no
   extrapolation, no substitution, no AI at runtime. Unsupported combinations show
   *„Für diese Kombination liegt kein verifizierter Tabellenwert vor.“*

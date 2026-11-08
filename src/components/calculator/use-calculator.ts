@@ -15,8 +15,9 @@ import {
 import { getTireSizes, hasAmbulanceTables, normalizeAxle } from "@/lib/options";
 import { parseTireCode } from "@/lib/tire-code";
 import { loadLastConfiguration, saveLastConfiguration } from "@/lib/storage";
-import { familyForType, getTypeOptionsForFamily, matchesPattern } from "@/lib/vehicle-types";
-import type { Application, AxleConfiguration, AxleRole, VehicleConfiguration, VehicleFamily } from "@/types/pressure";
+import { DEFAULT_VEHICLE_GROUP, isVehicleGroup, type VehicleGroup } from "@/data/vehicles";
+import { getApplicableDocumentIds } from "@/lib/vehicle-types";
+import type { Application, AxleConfiguration, AxleRole, VehicleConfiguration } from "@/types/pressure";
 
 interface State {
   config: VehicleConfiguration;
@@ -32,8 +33,7 @@ type AxlePatch = Partial<
 
 type Action =
   | { type: "hydrate"; config: VehicleConfiguration | null; datasetChangedFrom: string | null }
-  | { type: "setFamily"; family: VehicleFamily }
-  | { type: "setFactoryType"; factoryType: string; family?: VehicleFamily }
+  | { type: "setGroup"; group: VehicleGroup }
   | { type: "setApplication"; application: Application }
   | { type: "updateAxle"; id: string; patch: AxlePatch }
   | { type: "addAxle" }
@@ -44,21 +44,29 @@ type Action =
   | { type: "dismissNotice" }
   | { type: "reset" };
 
-/** Re-validate every axle against the documented options for the current vehicle. */
+/**
+ * No model selection: the tables are shared by all truck types per rim size. Older saved
+ * configurations that still carry a Baumuster are mapped to their table group.
+ */
+function toGroup(factoryType: string): VehicleGroup {
+  if (isVehicleGroup(factoryType)) return factoryType;
+  if (!factoryType) return DEFAULT_VEHICLE_GROUP;
+  return getApplicableDocumentIds(factoryType).has("AP40.15-D-4060-01C") ? "vario" : "truck";
+}
+
+/** Re-validate every axle against the documented options for the current table group. */
 function normalizeConfig(config: VehicleConfiguration): VehicleConfiguration {
+  const group = toGroup(config.factoryType);
   const application: Application =
-    config.application === "ambulance" && config.factoryType && hasAmbulanceTables(config.factoryType)
-      ? "ambulance"
-      : "standard";
-  const scope = { vehicleType: config.factoryType, application };
+    config.application === "ambulance" && hasAmbulanceTables(group) ? "ambulance" : "standard";
+  const scope = { vehicleType: group, application };
   const axles = renumberAxles(config.axles);
   return {
     ...config,
+    vehicleFamily: "",
+    factoryType: group,
     application,
-    axles: axles.map((a) => {
-      if (!config.factoryType) return { ...a, tireSize: "", mounting: "", tableAxle: "", loadIndex: "" };
-      return normalizeAxle(a, axles, scope);
-    }),
+    axles: axles.map((a) => normalizeAxle(a, axles, scope)),
   };
 }
 
@@ -68,8 +76,8 @@ function normalizeConfig(config: VehicleConfiguration): VehicleConfiguration {
  */
 function applyTireCode(next: AxleConfiguration, prev: AxleConfiguration, config: VehicleConfiguration, keepTableAxle: boolean) {
   const code = parseTireCode(next.tireCode ?? "");
-  if (!code || !config.factoryType) return;
-  const sizes = getTireSizes({ vehicleType: config.factoryType, application: config.application });
+  if (!code) return;
+  const sizes = getTireSizes({ vehicleType: toGroup(config.factoryType), application: config.application });
   if (!sizes.includes(code.tireSize)) return;
   next.tireSize = code.tireSize;
   if (code.tireSize !== prev.tireSize) {
@@ -99,24 +107,8 @@ function reducer(state: State, action: Action): State {
         ...withConfig(state, action.config, {}),
         datasetNotice: action.datasetChangedFrom ? { old: action.datasetChangedFrom } : null,
       };
-    case "setFamily": {
-      const options = getTypeOptionsForFamily(action.family);
-      const stillValid =
-        action.family === "advanced" || options.some((o) => matchesPattern(config.factoryType, o.value));
-      // A family with a single documented factory type (e.g. Arocs → 964) is selected directly.
-      const only = action.family !== "advanced" && options.length === 1 ? options[0].value : "";
-      return withConfig(state, {
-        ...config,
-        vehicleFamily: action.family,
-        factoryType: stillValid ? config.factoryType : only,
-      });
-    }
-    case "setFactoryType":
-      return withConfig(state, {
-        ...config,
-        vehicleFamily: action.family ?? config.vehicleFamily,
-        factoryType: action.factoryType,
-      });
+    case "setGroup":
+      return withConfig(state, { ...config, factoryType: action.group });
     case "setApplication":
       return withConfig(state, { ...config, application: action.application });
     case "updateAxle": {
@@ -219,9 +211,7 @@ export function useCalculator() {
 
   const actions = useMemo(
     () => ({
-      setFamily: (family: VehicleFamily) => dispatch({ type: "setFamily", family }),
-      setFactoryType: (factoryType: string, family?: VehicleFamily) =>
-        dispatch({ type: "setFactoryType", factoryType, family }),
+      setGroup: (group: VehicleGroup) => dispatch({ type: "setGroup", group }),
       setApplication: (application: Application) => dispatch({ type: "setApplication", application }),
       updateAxle: (id: string, patch: AxlePatch) => dispatch({ type: "updateAxle", id, patch }),
       addAxle: () => dispatch({ type: "addAxle" }),
@@ -242,7 +232,7 @@ export function useCalculator() {
 
   const isUserTableAxle = useCallback((id: string) => !!state.userTableAxle[id], [state.userTableAxle]);
 
-  return { ...state, results, actions, isUserTableAxle, familyForType };
+  return { ...state, results, actions, isUserTableAxle };
 }
 
 export type CalculatorApi = ReturnType<typeof useCalculator>;

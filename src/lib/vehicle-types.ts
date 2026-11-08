@@ -1,4 +1,11 @@
-import { FAMILY_MAPPINGS, TYPE_APPLICABILITY, type FamilyMapping, type TypeApplicability } from "@/data/vehicles";
+import {
+  FAMILY_MAPPINGS,
+  isVehicleGroup,
+  TYPE_APPLICABILITY,
+  VEHICLE_GROUPS,
+  type FamilyMapping,
+  type TypeApplicability,
+} from "@/data/vehicles";
 import type { DocumentId, VehicleFamily } from "@/types/pressure";
 
 const BAUMUSTER = /^\d{3}(\.\d{1,3})?$/;
@@ -48,6 +55,16 @@ export function getApplicableDocuments(
   vehicleType: string,
   applicability: TypeApplicability[] = TYPE_APPLICABILITY,
 ): ApplicableDocument[] {
+  // Table group ("truck" / "vario") instead of a specific Baumuster.
+  if (isVehicleGroup(vehicleType) && applicability === TYPE_APPLICABILITY) {
+    return VEHICLE_GROUPS[vehicleType].map((documentId) => ({
+      documentId,
+      page: 1,
+      line: 0,
+      pattern: vehicleType,
+      unresolvedExclusions: [],
+    }));
+  }
   const baumuster = normalizeBaumuster(vehicleType);
   if (!baumuster) return [];
   const result: ApplicableDocument[] = [];

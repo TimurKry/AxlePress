@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DATASET_VERSION } from "@/data/pressure-tables";
+import { DEFAULT_VEHICLE_GROUP } from "@/data/vehicles";
 import type { AxleConfiguration, VehicleConfiguration } from "@/types/pressure";
 
 /**
@@ -57,7 +58,7 @@ export function createAxle(position: number, role: AxleConfiguration["role"]): A
 export function createDefaultConfiguration(): VehicleConfiguration {
   return {
     vehicleFamily: "",
-    factoryType: "",
+    factoryType: DEFAULT_VEHICLE_GROUP,
     application: "standard",
     axles: [createAxle(1, "steering"), createAxle(2, "driven")],
   };

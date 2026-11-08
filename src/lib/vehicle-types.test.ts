@@ -42,6 +42,12 @@ describe("vehicle types", () => {
     expect(ids("956.264")).toEqual([]);
   });
 
+  it("resolves table groups without a model selection", () => {
+    const ids = (t: string) => getApplicableDocuments(t).map((d) => d.documentId).sort();
+    expect(ids("truck")).toEqual(["AP40.15-W-4060-01C", "AP40.15-W-4060-01D", "AP40.15-W-4060-01F"]);
+    expect(ids("vario")).toEqual(["AP40.15-D-4060-01C"]);
+  });
+
   it("reports exclusions that cannot be ruled out", () => {
     const [doc] = getApplicableDocuments("956");
     expect(doc.unresolvedExclusions).toEqual(["956.264", "956.265"]);
